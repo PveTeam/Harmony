@@ -13,14 +13,18 @@ namespace HarmonyLib
 
 		const string INSTANCE_PARAM = "__instance";
 		const string ORIGINAL_METHOD_PARAM = "__originalMethod";
+		const string ORIGINAL_PARAM = "__original";
 		const string ARGS_ARRAY_VAR = "__args";
 		const string RESULT_VAR = "__result";
 		const string RESULT_REF_VAR = "__resultRef";
 		const string STATE_VAR = "__state";
+		const string LOCAL_STATE_VAR = "__local";
 		const string EXCEPTION_VAR = "__exception";
 		const string RUN_ORIGINAL_VAR = "__runOriginal";
+		const string PREFIX_SKIPPED_VAR = "__prefixSkipped";
 		const string PARAM_INDEX_PREFIX = "__";
 		const string INSTANCE_FIELD_PREFIX = "___";
+		const string FIELD_PREFIX = "__field_";
 
 		readonly bool debug;
 		readonly MethodBase original;
@@ -120,7 +124,7 @@ namespace HarmonyLib
 			Label? skipOriginalLabel = null;
 			LocalBuilder runOriginalVariable = null;
 			var prefixAffectsOriginal = prefixes.Any(PrefixAffectsOriginal);
-			var anyFixHasRunOriginalVar = fixes.Any(fix => parameterNames[fix].Any(pair => pair.realName == RUN_ORIGINAL_VAR));
+			var anyFixHasRunOriginalVar = fixes.Any(fix => parameterNames[fix].Any(pair => pair.realName is RUN_ORIGINAL_VAR or PREFIX_SKIPPED_VAR));
 			if (prefixAffectsOriginal || anyFixHasRunOriginalVar)
 			{
 				runOriginalVariable = DeclareLocalVariable(typeof(bool));
@@ -141,6 +145,14 @@ namespace HarmonyLib
 						privateVars[fix.DeclaringType.AssemblyQualifiedName] = privateStateVariable;
 					});
 				}
+
+				parameterNames[fix].Where(pair => pair.realName == LOCAL_STATE_VAR).Select(pair => pair.info).Do(patchParam =>
+				{
+					var localStateVariable = DeclareLocalVariable(patchParam.ParameterType);
+					if (privateVars.TryGetValue(LOCAL_STATE_VAR, out var existingStateVariable) && !localStateVariable.LocalType.IsAssignableFrom(existingStateVariable.LocalType))
+						throw new Exception($"Local state variable of type {localStateVariable.LocalType} must be assignable from existing state variable of type {existingStateVariable.LocalType}");
+					privateVars[LOCAL_STATE_VAR] = localStateVariable;
+				});
 			});
 
 			LocalBuilder finalizedVariable = null;
@@ -482,7 +494,7 @@ namespace HarmonyLib
 			foreach (var patchParam in parameters)
 			{
 				var patchParamName = realNames[patchParam.Name];
-				if (patchParamName == ORIGINAL_METHOD_PARAM)
+				if (patchParamName is ORIGINAL_METHOD_PARAM or ORIGINAL_PARAM)
 				{
 					if (EmitOriginalBaseMethod())
 						continue;
@@ -497,6 +509,25 @@ namespace HarmonyLib
 						emitter.Emit(OpCodes.Ldloc, runOriginalVariable);
 					else
 						emitter.Emit(OpCodes.Ldc_I4_0);
+					continue;
+				}
+
+				if (patchParamName == PREFIX_SKIPPED_VAR)
+				{
+					if (runOriginalVariable != null)
+					{
+						if (patchParam.ParameterType != typeof(bool))
+							throw new Exception($"Parameter {patchParam.Name} must be of type bool");
+						if (patchParam.ParameterType.IsByRef)
+							throw new Exception($"Parameter {patchParam.Name} cannot be byref");
+
+						// invert runOriginal
+						il.Emit(OpCodes.Ldloc, runOriginalVariable);
+						il.Emit(OpCodes.Ldc_I4_0);
+						il.Emit(OpCodes.Ceq);
+					}
+					else
+						emitter.Emit(OpCodes.Ldc_I4_1);
 					continue;
 				}
 
@@ -562,9 +593,9 @@ namespace HarmonyLib
 					continue;
 				}
 
-				if (patchParamName.StartsWith(INSTANCE_FIELD_PREFIX, StringComparison.Ordinal))
+				if (patchParamName.StartsWith(INSTANCE_FIELD_PREFIX, StringComparison.Ordinal) || patchParamName.StartsWith(FIELD_PREFIX, StringComparison.Ordinal))
 				{
-					var fieldName = patchParamName.Substring(INSTANCE_FIELD_PREFIX.Length);
+					var fieldName = patchParam.Name.Substring(patchParam.Name.StartsWith(INSTANCE_FIELD_PREFIX, StringComparison.Ordinal) ? INSTANCE_FIELD_PREFIX.Length : FIELD_PREFIX.Length);;
 					FieldInfo fieldInfo;
 					if (fieldName.All(char.IsDigit))
 					{
@@ -598,6 +629,17 @@ namespace HarmonyLib
 						emitter.Emit(ldlocCode, stateVar);
 					else
 						emitter.Emit(OpCodes.Ldnull);
+					continue;
+				}
+
+				// unlike regular state the local state is shared between patches and must be the same exact type
+				if (patchParam.Name == LOCAL_STATE_VAR)
+				{
+					var ldlocCode = patchParam.ParameterType.IsByRef ? OpCodes.Ldloca : OpCodes.Ldloc;
+					if (variables.TryGetValue(LOCAL_STATE_VAR, out var stateVar))
+						il.Emit(ldlocCode, stateVar);
+					else
+						il.Emit(OpCodes.Ldnull);
 					continue;
 				}
 
@@ -788,8 +830,8 @@ namespace HarmonyLib
 				var type = p.ParameterType;
 
 				if (name == INSTANCE_PARAM) return false;
-				if (name == ORIGINAL_METHOD_PARAM) return false;
-				if (name == STATE_VAR) return false;
+				if (name is ORIGINAL_METHOD_PARAM or ORIGINAL_PARAM) return false;
+				if (name is STATE_VAR or LOCAL_STATE_VAR) return false;
 
 				if (p.IsOut || p.IsRetval) return true;
 				if (type.IsByRef) return true;
