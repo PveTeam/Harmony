@@ -5,9 +5,6 @@ using System.Reflection;
 
 namespace HarmonyLib
 {
-	// PatchJobs holds the information during correlation
-	// of methods and patches while processing attribute patches
-	//
 	internal class PatchJobs<T>
 	{
 		internal class Job
@@ -18,6 +15,8 @@ namespace HarmonyLib
 			internal List<HarmonyMethod> postfixes = [];
 			internal List<HarmonyMethod> transpilers = [];
 			internal List<HarmonyMethod> finalizers = [];
+			internal List<HarmonyMethod> innerprefixes = [];
+			internal List<HarmonyMethod> innerpostfixes = [];
 
 			internal void AddPatch(AttributePatch patch)
 			{
@@ -34,6 +33,12 @@ namespace HarmonyLib
 						break;
 					case HarmonyPatchType.Finalizer:
 						finalizers.Add(patch.info);
+						break;
+					case HarmonyPatchType.InnerPrefix:
+						innerprefixes.Add(patch.info);
+						break;
+					case HarmonyPatchType.InnerPostfix:
+						innerpostfixes.Add(patch.info);
 						break;
 				}
 			}
@@ -54,15 +59,18 @@ namespace HarmonyLib
 
 		internal List<Job> GetJobs()
 		{
-			return state.Values.Where(job =>
+			return [.. state.Values.Where(job =>
 				job.prefixes.Count +
 				job.postfixes.Count +
 				job.transpilers.Count +
-				job.finalizers.Count > 0
-			).ToList();
+				job.finalizers.Count +
+				job.innerprefixes.Count +
+				job.innerpostfixes.Count
+				> 0
+			)];
 		}
 
-		internal List<T> GetReplacements() => state.Values.Select(job => job.replacement).ToList();
+		internal List<T> GetReplacements() => [.. state.Values.Select(job => job.replacement)];
 	}
 
 	// AttributePatch contains all information for a patch defined by attributes
@@ -75,6 +83,8 @@ namespace HarmonyLib
 			HarmonyPatchType.Transpiler,
 			HarmonyPatchType.Finalizer,
 			HarmonyPatchType.ReversePatch,
+			HarmonyPatchType.InnerPrefix,
+			HarmonyPatchType.InnerPostfix
 		];
 
 		internal HarmonyMethod info;

@@ -8,7 +8,7 @@
     <title>Basics </title>
     <meta name="viewport" content="width=device-width">
     <meta name="title" content="Basics ">
-    <meta name="generator" content="docfx 2.59.4.0">
+    <meta name="generator" content="docfx 2.48.1.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -80,7 +80,7 @@
 <li>compile your code and make sure 0Harmony.dll is available at runtime (package with your release)</li>
 </ol>
 <h2 id="runtime-dependency">Runtime dependency</h2>
-<p>Some games or applications already supply Harmony from either a loader or another mod. While this seems easier, it requires that the version of Harmony you compile against is the same as the one available at runtime or else your code will not run (missing dependency). It also ties the release cycle of that solution to your. Harmony can co-exist in multiple versions with itself so it is totally fine that each user packs their own 0Harmony.dll with their mod.</p>
+<p>Some games or applications already supply Harmony from either a loader or another mod. While this seems easier, it requires that the version of Harmony you compile against is the same as the one available at runtime or else your code will not run (missing dependency). It also ties the release cycle of that solution to yours. Harmony can co-exist in multiple versions with itself so it is totally fine that each user packs their own 0Harmony.dll with their mod.</p>
 <p><em>Note for application/game makers: it seems you can embed multiple versions of Harmony at once which will avoid the issue described above.</em></p>
 <h3 id="manual-dll-adding">Manual dll adding</h3>
 <p>To add Harmony manually to your Visual Studio project, you right-click on <code>References</code> in your solution explorer and choose <code>Add Reference</code> to open the Reference Manager. There, browse for 0Harmony.dll and select add it.</p>
@@ -214,13 +214,12 @@ harmony.Unpatch(original, patch);
               <div class="contribution">
                 <ul class="nav">
                   <li>
-                    <a href="https://github.com/pardeike/Harmony/blob/master/Harmony/Documentation/articles/basics.md/#L1" class="contribution-link">Improve this Doc</a>
+                    <a href="https://github.com/pardeike/Harmony/blob/master/Documentation/articles/basics.md/#L1" class="contribution-link">Improve this Doc</a>
                   </li>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-                <h5>In This Article</h5>
-                <div></div>
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
               </nav>
             </div>
           </div>

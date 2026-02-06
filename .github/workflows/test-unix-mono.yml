@@ -53,21 +53,42 @@ env:
 
 jobs:
   unix-mono:
-    name: Mono ${{ inputs.os }}-${{ inputs.architecture }} ${{ inputs.target_framework }} ${{ inputs.build_configuration }}
+    name: ${{ inputs.build_configuration }}
     runs-on: ${{inputs.image}}
     continue-on-error: ${{inputs.experimental}}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install Rosetta 2 on macOS
-        if: ${{inputs.image == 'macos-14' && inputs.architecture == 'x64'}}
+        if: ${{ inputs.image == 'macos-14' && inputs.architecture == 'x64' }}
         run: /usr/sbin/softwareupdate --install-rosetta --agree-to-license
 
-      - name: Setup .NET Sdk
-        uses: actions/setup-dotnet@v4
+      - name: Install Mono on Ubuntu
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mono-complete
 
-      - name: Get Installed .NET Sdk Information
+      - name: Install Mono on macOS
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install mono || (brew link --overwrite --force mono && brew install mono)
+          brew link --overwrite --force mono
+        shell: bash
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          architecture: ${{inputs.architecture}}
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/.dotnet
+
+      - name: Get Installed .NET SDK Information
         run: dotnet --info
 
       - name: Download Build Cache

@@ -1,25 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace HarmonyLib
 {
-	/// <summary>Patch function helpers</summary>
 	internal static class PatchFunctions
 	{
-		/// <summary>Sorts patch methods by their priority rules</summary>
-		/// <param name="original">The original method</param>
-		/// <param name="patches">Patches to sort</param>
-		/// <param name="debug">Use debug mode</param>
-		/// <returns>The sorted patch methods</returns>
-		///
-		internal static List<MethodInfo> GetSortedPatchMethods(MethodBase original, Patch[] patches, bool debug) => new PatchSorter(patches, debug).Sort(original);
+		internal static List<MethodInfo> GetSortedPatchMethods(MethodBase original, Patch[] patches, bool debug)
+			=> [.. new PatchSorter(patches, debug).Sort().Select(p => p.GetMethod(original))];
+		private static List<Infix> GetInfixes(Patch[] patches) => [.. patches.Select(p => new Infix(p))];
 
-		/// <summary>Creates new replacement method with the latest patches and detours the original method</summary>
-		/// <param name="original">The original method</param>
-		/// <param name="patchInfo">Information describing the patches</param>
-		/// <returns>The newly created replacement method</returns>
-		///
 		internal static MethodInfo UpdateWrapper(MethodBase original, PatchInfo patchInfo)
 		{
 			var debug = patchInfo.Debugging || Harmony.DEBUG;
@@ -28,9 +19,21 @@ namespace HarmonyLib
 			var sortedPostfixes = GetSortedPatchMethods(original, patchInfo.postfixes, debug);
 			var sortedTranspilers = GetSortedPatchMethods(original, patchInfo.transpilers, debug);
 			var sortedFinalizers = GetSortedPatchMethods(original, patchInfo.finalizers, debug);
+			var sortedInnerPrefixes = GetInfixes(patchInfo.innerprefixes);
+			var sortedInnerPostfixes = GetInfixes(patchInfo.innerpostfixes);
 
-			var patcher = new MethodPatcher(original, null, sortedPrefixes, sortedPostfixes, sortedTranspilers, sortedFinalizers, debug);
-			var replacement = patcher.CreateReplacement(out var finalInstructions);
+			var patcher = new MethodCreator(new MethodCreatorConfig(
+				original,
+				null,
+				sortedPrefixes,
+				sortedPostfixes,
+				sortedTranspilers,
+				sortedFinalizers,
+				sortedInnerPrefixes,
+				sortedInnerPostfixes,
+				debug
+			));
+			var (replacement, finalInstructions) = patcher.CreateReplacement();
 			if (replacement is null) throw new MissingMethodException($"Cannot create replacement for {original.FullDescription()}");
 
 			try
@@ -61,9 +64,20 @@ namespace HarmonyLib
 			}
 			if (postTranspiler is not null) transpilers.Add(postTranspiler);
 
-			var empty = new List<MethodInfo>();
-			var patcher = new MethodPatcher(standin.method, original, empty, empty, transpilers, empty, debug);
-			var replacement = patcher.CreateReplacement(out var finalInstructions);
+			var emptyFix = new List<MethodInfo>();
+			var emptyInner = new List<Infix>();
+			var patcher = new MethodCreator(new MethodCreatorConfig(
+				standin.method,
+				original,
+				emptyFix,
+				emptyFix,
+				transpilers,
+				emptyFix,
+				emptyInner,
+				emptyInner,
+				debug
+			));
+			var (replacement, finalInstructions) = patcher.CreateReplacement();
 			if (replacement is null) throw new MissingMethodException($"Cannot create replacement for {standin.method.FullDescription()}");
 
 			try

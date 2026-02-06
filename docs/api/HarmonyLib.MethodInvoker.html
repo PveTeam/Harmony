@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width">
     <meta name="title" content="Class MethodInvoker
    ">
-    <meta name="generator" content="docfx 2.59.4.0">
+    <meta name="generator" content="docfx 2.48.1.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -89,13 +89,8 @@
   </div>
   <h3 id="methods">Methods
   </h3>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/pardeike/Harmony/new/master/apiSpec/new?filename=HarmonyLib_MethodInvoker_GetHandler_System_Reflection_MethodInfo_System_Boolean_.md&amp;value=---%0Auid%3A%20HarmonyLib.MethodInvoker.GetHandler(System.Reflection.MethodInfo%2CSystem.Boolean)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/pardeike/Harmony/blob/master/Harmony/Extras/MethodInvoker.cs/#L50">View Source</a>
-  </span>
+  
+  
   <a id="HarmonyLib_MethodInvoker_GetHandler_" data-uid="HarmonyLib.MethodInvoker.GetHandler*"></a>
   <h4 id="HarmonyLib_MethodInvoker_GetHandler_System_Reflection_MethodInfo_System_Boolean_" data-uid="HarmonyLib.MethodInvoker.GetHandler(System.Reflection.MethodInfo,System.Boolean)">GetHandler(MethodInfo, Boolean)</h4>
   <div class="markdown level1 summary"><p>Creates a fast invocation handler from a method</p>
@@ -155,9 +150,7 @@ Like any other object, there can be other references to such boxed value objects
 <pre><code>var val = 5;
 var box = (object)val;
 var arr = new object[] { box };
-handler(arr); // for a method with parameter signature: ref/out/in int</code></pre>
-</example>
-</p>
+handler(arr); // for a method with parameter signature: ref/out/in int</code></pre></example></p>
 <p>
 If <code>directBoxValueAccess</code> is <code>true</code>, the boxed value object is accessed (and potentially updated) directly when the handler is called,
 such that all references to the boxed object reflect the potentially updated value.
@@ -177,17 +170,10 @@ In the above example, if the method associated with the handler updates the pass
             <div class="sideaffix">
               <div class="contribution">
                 <ul class="nav">
-                  <li>
-                    <a href="https://github.com/pardeike/Harmony/new/master/apiSpec/new?filename=HarmonyLib_MethodInvoker.md&amp;value=---%0Auid%3A%20HarmonyLib.MethodInvoker%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
-                  </li>
-                  <li>
-                    <a href="https://github.com/pardeike/Harmony/blob/master/Harmony/Extras/MethodInvoker.cs/#L17" class="contribution-link">View Source</a>
-                  </li>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-                <h5>In This Article</h5>
-                <div></div>
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
               </nav>
             </div>
           </div>

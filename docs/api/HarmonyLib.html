@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width">
     <meta name="title" content="Namespace HarmonyLib
    ">
-    <meta name="generator" content="docfx 2.59.4.0">
+    <meta name="generator" content="docfx 2.48.1.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -83,8 +83,6 @@
       <h4><a class="xref" href="HarmonyLib.AccessToolsExtensions.html">AccessToolsExtensions</a></h4>
       <section><p>Adds extensions to Type for a lot of AccessTools methods</p>
 </section>
-      <h4><a class="xref" href="HarmonyLib.Break_.html">Break_</a></h4>
-      <section></section>
       <h4><a class="xref" href="HarmonyLib.Code.html">Code</a></h4>
       <section><p>By adding the following using statement to your source code: <code>using static HarmonyLib.Code;</code>
 you can for example start using <code>Ldarg_1</code> in you code instead of <code>new CodeMatch(OpCodes.Ldarg_1)</code>
@@ -192,6 +190,9 @@ and then you can use array notation to add an operand and/or a name: <code>Call[
       <h4><a class="xref" href="HarmonyLib.HarmonyTranspiler.html">HarmonyTranspiler</a></h4>
       <section><p>Specifies the Transpiler function in a patch class</p>
 </section>
+      <h4><a class="xref" href="HarmonyLib.InnerMethod.html">InnerMethod</a></h4>
+      <section><p>Occcurances of a method that is called inside some outer method</p>
+</section>
       <h4><a class="xref" href="HarmonyLib.MethodBaseExtensions.html">MethodBaseExtensions</a></h4>
       <section><p>General extensions for collections</p>
 </section>
@@ -262,20 +263,17 @@ and then you can use array notation to add an operand and/or a name: <code>Call[
       <h4><a class="xref" href="HarmonyLib.AccessTools.StructFieldRef-2.html">AccessTools.StructFieldRef&lt;T, F&gt;</a></h4>
       <section><p>A readable/assignable reference delegate to an instance field of a struct</p>
 </section>
+      <h4><a class="xref" href="HarmonyLib.CodeMatcher.ErrorHandler.html">CodeMatcher.ErrorHandler</a></h4>
+      <section><p>Delegate for error handling</p>
+</section>
       <h4><a class="xref" href="HarmonyLib.FastInvokeHandler.html">FastInvokeHandler</a></h4>
       <section><p>A delegate to invoke a method</p>
-</section>
-      <h4><a class="xref" href="HarmonyLib.GetterHandler-2.html">GetterHandler&lt;T, S&gt;</a></h4>
-      <section><p>A getter delegate type</p>
 </section>
       <h4><a class="xref" href="HarmonyLib.InstantiationHandler-1.html">InstantiationHandler&lt;T&gt;</a></h4>
       <section><p>A constructor delegate type</p>
 </section>
       <h4><a class="xref" href="HarmonyLib.RefResult-1.html">RefResult&lt;T&gt;</a></h4>
       <section><p>Delegate type for &quot;ref return&quot; injections</p>
-</section>
-      <h4><a class="xref" href="HarmonyLib.SetterHandler-2.html">SetterHandler&lt;T, S&gt;</a></h4>
-      <section><p>A setter delegate type</p>
 </section>
 </article>
           </div>
@@ -287,8 +285,7 @@ and then you can use array notation to add an operand and/or a name: <code>Call[
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-                <h5>In This Article</h5>
-                <div></div>
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
               </nav>
             </div>
           </div>

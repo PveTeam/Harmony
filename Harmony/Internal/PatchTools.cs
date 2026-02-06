@@ -106,10 +106,9 @@ namespace HarmonyLib
 
 		internal static List<AttributePatch> GetPatchMethods(Type type)
 		{
-			return AccessTools.GetDeclaredMethods(type)
+			return [.. AccessTools.GetDeclaredMethods(type)
 				.Select(AttributePatch.Create)
-				.Where(attributePatch => attributePatch is not null)
-				.ToList();
+				.Where(attributePatch => attributePatch is not null)];
 		}
 
 		internal static MethodBase GetOriginalMethod(this HarmonyMethod attr)
@@ -154,6 +153,49 @@ namespace HarmonyLib
 						var asyncMethod = AccessTools.DeclaredMethod(attr.declaringType, attr.methodName, attr.argumentTypes);
 						return AccessTools.AsyncMoveNext(asyncMethod);
 #endif
+
+					case MethodType.Finalizer:
+						return AccessTools.DeclaredFinalizer(attr.declaringType);
+
+					case MethodType.EventAdd:
+						if (string.IsNullOrEmpty(attr.methodName))
+							return null;
+						return AccessTools.DeclaredEventAdder(attr.declaringType, attr.methodName);
+
+					case MethodType.EventRemove:
+						if (string.IsNullOrEmpty(attr.methodName))
+							return null;
+						return AccessTools.DeclaredEventRemover(attr.declaringType, attr.methodName);
+
+					case MethodType.OperatorImplicit:
+					case MethodType.OperatorExplicit:
+					case MethodType.OperatorUnaryPlus:
+					case MethodType.OperatorUnaryNegation:
+					case MethodType.OperatorLogicalNot:
+					case MethodType.OperatorOnesComplement:
+					case MethodType.OperatorIncrement:
+					case MethodType.OperatorDecrement:
+					case MethodType.OperatorTrue:
+					case MethodType.OperatorFalse:
+					case MethodType.OperatorAddition:
+					case MethodType.OperatorSubtraction:
+					case MethodType.OperatorMultiply:
+					case MethodType.OperatorDivision:
+					case MethodType.OperatorModulus:
+					case MethodType.OperatorBitwiseAnd:
+					case MethodType.OperatorBitwiseOr:
+					case MethodType.OperatorExclusiveOr:
+					case MethodType.OperatorLeftShift:
+					case MethodType.OperatorRightShift:
+					case MethodType.OperatorEquality:
+					case MethodType.OperatorInequality:
+					case MethodType.OperatorGreaterThan:
+					case MethodType.OperatorLessThan:
+					case MethodType.OperatorGreaterThanOrEqual:
+					case MethodType.OperatorLessThanOrEqual:
+					case MethodType.OperatorComma:
+						var methodName = "op_" + attr.methodType.ToString().Replace("Operator", "");
+						return AccessTools.DeclaredMethod(attr.declaringType, methodName, attr.argumentTypes);
 				}
 			}
 			catch (AmbiguousMatchException ex)

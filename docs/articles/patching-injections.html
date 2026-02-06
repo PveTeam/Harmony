@@ -8,7 +8,7 @@
     <title>Patching </title>
     <meta name="viewport" content="width=device-width">
     <meta name="title" content="Patching ">
-    <meta name="generator" content="docfx 2.59.4.0">
+    <meta name="generator" content="docfx 2.48.1.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -92,7 +92,7 @@
 <li>The name of a given argument (that is to be matched to the argument of the original method) must either be the same name or of the form <strong><code>__n</code></strong>, where <code>n</code> is the zero-based index of the argument in the orignal method (you can also use argument annotations to map to custom names).</li>
 </ul>
 <h3 id="__originalmethod">__originalMethod</h3>
-<p>To allow patches to identify on which method they are attachted you can inject the original methods MethodBase by using an argument called <strong><code>__originalMethod</code></strong>.</p>
+<p>To allow patches to identify on which method they are attached to, you can inject the original methods MethodBase by using an argument called <strong><code>__originalMethod</code></strong>.</p>
 <p><img src="https://raw.githubusercontent.com/pardeike/Harmony/master/Harmony/Documentation/images/note.png" alt="note"> <strong>You cannot call the original method with that</strong>. The value is only for conditional code in your patch that can selectively run if the patch is applied to multiple methods. The original does not exist after patching and this will point to the patched version.</p>
 <h3 id="__runoriginal">__runOriginal</h3>
 <p>To learn if the original is/was skipped you can inject <strong><code>bool __runOriginal</code></strong>. This is a readonly injection to understand if the original will be run (in a Prefix) or was run (in a Postfix).</p>
@@ -109,13 +109,12 @@ An argument of type <strong><code>MethodBase</code></strong> will be set to the 
               <div class="contribution">
                 <ul class="nav">
                   <li>
-                    <a href="https://github.com/pardeike/Harmony/blob/master/Harmony/Documentation/articles/patching-injections.md/#L1" class="contribution-link">Improve this Doc</a>
+                    <a href="https://github.com/pardeike/Harmony/blob/master/Documentation/articles/patching-injections.md/#L1" class="contribution-link">Improve this Doc</a>
                   </li>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-                <h5>In This Article</h5>
-                <div></div>
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
               </nav>
             </div>
           </div>

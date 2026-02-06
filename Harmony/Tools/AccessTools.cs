@@ -8,7 +8,13 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Text.RegularExpressions;
 using System.Threading;
+
+#if NET5_0_OR_GREATER
+using System.Threading.Tasks;
+#endif
+
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
 using System.Runtime.CompilerServices;
 #endif
@@ -25,6 +31,8 @@ namespace HarmonyLib
 	///
 	public static class AccessTools
 	{
+		private static Type[] allTypesCached = null;
+
 		/// <summary>Shortcut for <see cref="BindingFlags"/> to simplify the use of reflections and make it work for any access level</summary>
 		///
 		public static readonly BindingFlags all = BindingFlags.Public // This should a be const, but changing from static (readonly) to const breaks binary compatibility.
@@ -51,12 +59,56 @@ namespace HarmonyLib
 		///
 		public static Type TypeByName(string name)
 		{
-			var type = Type.GetType(name, false);
-			type ??= AllTypes().FirstOrDefault(t => t.FullName == name);
-			type ??= AllTypes().FirstOrDefault(t => t.Name == name);
-			if (type is null) FileLog.Debug($"AccessTools.TypeByName: Could not find type named {name}");
-			return type;
+			var localType = Type.GetType(name, false);
+			if (localType is not null)
+				return localType;
+
+			foreach (var assembly in AllAssemblies())
+			{
+				var specificType = assembly.GetType(name, false);
+				if (specificType is not null)
+					return specificType;
+			}
+
+			var allTypes = AllTypes().ToArray();
+
+			var fullType = allTypes.FirstOrDefault(t => t.FullName == name);
+			if (fullType is not null)
+				return fullType;
+
+			var partialType = allTypes.FirstOrDefault(t => t.Name == name);
+			if (partialType is not null)
+				return partialType;
+
+			FileLog.Debug($"AccessTools.TypeByName: Could not find type named {name}");
+			return null;
 		}
+
+		/// <summary>Searches a type by regular expression; for exact searching, use <see cref="AccessTools.TypeByName(string)"/></summary>
+		/// <param name="search">The regular expression that matches against Type.FullName or Type.Name</param>
+		/// <param name="invalidateCache">Refetches the cached types if set to true</param>
+		/// <returns>The first type where FullName or Name matches the search</returns>
+		///
+		public static Type TypeSearch(Regex search, bool invalidateCache = false)
+		{
+			if (allTypesCached == null || invalidateCache)
+				allTypesCached = [.. AllTypes()];
+
+			var fullType = allTypesCached.FirstOrDefault(t => search.IsMatch(t.FullName));
+			if (fullType is not null)
+				return fullType;
+
+			var partialType = allTypesCached.FirstOrDefault(t => search.IsMatch(t.Name));
+			if (partialType is not null)
+				return partialType;
+
+			FileLog.Debug($"AccessTools.TypeSearch: Could not find type with regular expression {search}");
+			return null;
+		}
+
+		/// <summary>Clears the type cache that <see cref="AccessTools.TypeSearch(Regex, bool)" /> uses</summary>
+		///
+		public static void ClearTypeSearchCache() => allTypesCached = null;
 
 		/// <summary>Gets all successfully loaded types from a given assembly</summary>
 		/// <param name="assembly">The assembly</param>
@@ -76,7 +128,7 @@ namespace HarmonyLib
 			catch (ReflectionTypeLoadException ex)
 			{
 				FileLog.Debug($"AccessTools.GetTypesFromAssembly: assembly {assembly} => {ex}");
-				return ex.Types.Where(type => type is not null).ToArray();
+				return [.. ex.Types.Where(type => type is not null)];
 			}
 		}
 
@@ -107,9 +159,11 @@ namespace HarmonyLib
 			while (true)
 			{
 				var result = func(type);
-				if (result is object) return result;
+				if (result is object)
+					return result;
 				type = type.BaseType;
-				if (type is null) return null;
+				if (type is null)
+					return null;
 			}
 		}
 
@@ -122,7 +176,8 @@ namespace HarmonyLib
 		public static T FindIncludingInnerTypes<T>(Type type, Func<Type, T> func) where T : class
 		{
 			var result = func(type);
-			if (result is object) return result;
+			if (result is object)
+				return result;
 			foreach (var subType in type.GetNestedTypes(all))
 			{
 				result = FindIncludingInnerTypes(subType, func);
@@ -155,7 +210,8 @@ namespace HarmonyLib
 				return null;
 			}
 			var fieldInfo = type.GetField(name, allDeclared);
-			if (fieldInfo is null) FileLog.Debug($"AccessTools.DeclaredField: Could not find field for type {type} and name {name}");
+			if (fieldInfo is null)
+				FileLog.Debug($"AccessTools.DeclaredField: Could not find field for type {type} and name {name}");
 			return fieldInfo;
 		}
 
@@ -167,7 +223,8 @@ namespace HarmonyLib
 		{
 			var info = Tools.TypColonName(typeColonName);
 			var fieldInfo = info.type.GetField(info.name, allDeclared);
-			if (fieldInfo is null) FileLog.Debug($"AccessTools.DeclaredField: Could not find field for type {info.type} and name {info.name}");
+			if (fieldInfo is null)
+				FileLog.Debug($"AccessTools.DeclaredField: Could not find field for type {info.type} and name {info.name}");
 			return fieldInfo;
 		}
 
@@ -189,7 +246,8 @@ namespace HarmonyLib
 				return null;
 			}
 			var fieldInfo = FindIncludingBaseTypes(type, t => t.GetField(name, all));
-			if (fieldInfo is null) FileLog.Debug($"AccessTools.Field: Could not find field for type {type} and name {name}");
+			if (fieldInfo is null)
+				FileLog.Debug($"AccessTools.Field: Could not find field for type {type} and name {name}");
 			return fieldInfo;
 		}
 
@@ -201,7 +259,8 @@ namespace HarmonyLib
 		{
 			var info = Tools.TypColonName(typeColonName);
 			var fieldInfo = FindIncludingBaseTypes(info.type, t => t.GetField(info.name, all));
-			if (fieldInfo is null) FileLog.Debug($"AccessTools.Field: Could not find field for type {info.type} and name {info.name}");
+			if (fieldInfo is null)
+				FileLog.Debug($"AccessTools.Field: Could not find field for type {info.type} and name {info.name}");
 			return fieldInfo;
 		}
 
@@ -218,7 +277,8 @@ namespace HarmonyLib
 				return null;
 			}
 			var fieldInfo = GetDeclaredFields(type).ElementAtOrDefault(idx);
-			if (fieldInfo is null) FileLog.Debug($"AccessTools.DeclaredField: Could not find field for type {type} and idx {idx}");
+			if (fieldInfo is null)
+				FileLog.Debug($"AccessTools.DeclaredField: Could not find field for type {type} and idx {idx}");
 			return fieldInfo;
 		}
 
@@ -240,7 +300,8 @@ namespace HarmonyLib
 				return null;
 			}
 			var property = type.GetProperty(name, allDeclared);
-			if (property is null) FileLog.Debug($"AccessTools.DeclaredProperty: Could not find property for type {type} and name {name}");
+			if (property is null)
+				FileLog.Debug($"AccessTools.DeclaredProperty: Could not find property for type {type} and name {name}");
 			return property;
 		}
 
@@ -252,7 +313,8 @@ namespace HarmonyLib
 		{
 			var info = Tools.TypColonName(typeColonName);
 			var property = info.type.GetProperty(info.name, allDeclared);
-			if (property is null) FileLog.Debug($"AccessTools.DeclaredProperty: Could not find property for type {info.type} and name {info.name}");
+			if (property is null)
+				FileLog.Debug($"AccessTools.DeclaredProperty: Could not find property for type {info.type} and name {info.name}");
 			return property;
 		}
 
@@ -276,7 +338,8 @@ namespace HarmonyLib
 					type.GetProperties(allDeclared).SingleOrDefault(property => property.GetIndexParameters().Length > 0)
 					: type.GetProperties(allDeclared).FirstOrDefault(property => property.GetIndexParameters().Select(param => param.ParameterType).SequenceEqual(parameters));
 
-				if (indexer is null) FileLog.Debug($"AccessTools.DeclaredIndexer: Could not find indexer for type {type} and parameters {parameters?.Description()}");
+				if (indexer is null)
+					FileLog.Debug($"AccessTools.DeclaredIndexer: Could not find indexer for type {type} and parameters {parameters?.Description()}");
 
 				return indexer;
 			}
@@ -344,7 +407,8 @@ namespace HarmonyLib
 				return null;
 			}
 			var property = FindIncludingBaseTypes(type, t => t.GetProperty(name, all));
-			if (property is null) FileLog.Debug($"AccessTools.Property: Could not find property for type {type} and name {name}");
+			if (property is null)
+				FileLog.Debug($"AccessTools.Property: Could not find property for type {type} and name {name}");
 			return property;
 		}
 
@@ -356,7 +420,8 @@ namespace HarmonyLib
 		{
 			var info = Tools.TypColonName(typeColonName);
 			var property = FindIncludingBaseTypes(info.type, t => t.GetProperty(info.name, all));
-			if (property is null) FileLog.Debug($"AccessTools.Property: Could not find property for type {info.type} and name {info.name}");
+			if (property is null)
+				FileLog.Debug($"AccessTools.Property: Could not find property for type {info.type} and name {info.name}");
 			return property;
 		}
 
@@ -382,7 +447,8 @@ namespace HarmonyLib
 			{
 				var indexer = FindIncludingBaseTypes(type, func);
 
-				if (indexer is null) FileLog.Debug($"AccessTools.Indexer: Could not find indexer for type {type} and parameters {parameters?.Description()}");
+				if (indexer is null)
+					FileLog.Debug($"AccessTools.Indexer: Could not find indexer for type {type} and parameters {parameters?.Description()}");
 
 				return indexer;
 			}
@@ -432,6 +498,130 @@ namespace HarmonyLib
 		///
 		public static MethodInfo IndexerSetter(Type type, Type[] parameters = null) => Indexer(type, parameters)?.GetSetMethod(true);
 
+		/// <summary>Gets the reflection information for a directly declared event</summary>
+		/// <param name="type">The class/type where the event is declared</param>
+		/// <param name="name">The name of the event (case sensitive)</param>
+		/// <returns>An event or null when type/name is null or when the event cannot be found</returns>
+		///
+		public static EventInfo DeclaredEvent(Type type, string name)
+		{
+			if (type is null)
+			{
+				FileLog.Debug("AccessTools.DeclaredEvent: type is null");
+				return null;
+			}
+			if (string.IsNullOrEmpty(name))
+			{
+				FileLog.Debug("AccessTools.DeclaredEvent: name is null/empty");
+				return null;
+			}
+			var eventInfo = type.GetEvent(name, allDeclared);
+			if (eventInfo is null)
+				FileLog.Debug($"AccessTools.DeclaredEvent: Could not find event for type {type} and name {name}");
+			return eventInfo;
+		}
+
+		/// <summary>Gets the reflection information for a directly declared event</summary>
+		/// <param name="typeColonName">The member in the form <c>TypeFullName:MemberName</c>, where TypeFullName matches the form recognized by <a href="https://docs.microsoft.com/en-us/dotnet/api/system.type.gettype">Type.GetType</a> like <c>Some.Namespace.Type</c>.</param>
+		/// <returns>An event or null when the event cannot be found</returns>
+		///
+		public static EventInfo DeclaredEvent(string typeColonName)
+		{
+			var info = Tools.TypColonName(typeColonName);
+			var eventInfo = info.type.GetEvent(info.name, allDeclared);
+			if (eventInfo is null)
+				FileLog.Debug($"AccessTools.DeclaredEvent: Could not find event for type {info.type} and name {info.name}");
+			return eventInfo;
+		}
+
+		/// <summary>Gets the reflection information for an event by searching the type and all its super types</summary>
+		/// <param name="type">The class/type where the event is declared</param>
+		/// <param name="name">The name of the event (case sensitive)</param>
+		/// <returns>An event or null when type/name is null or when the event cannot be found</returns>
+		///
+		public static EventInfo Event(Type type, string name)
+		{
+			if (type is null)
+			{
+				FileLog.Debug("AccessTools.Event: type is null");
+				return null;
+			}
+			if (string.IsNullOrEmpty(name))
+			{
+				FileLog.Debug("AccessTools.Event: name is null/empty");
+				return null;
+			}
+			var eventInfo = FindIncludingBaseTypes(type, t => t.GetEvent(name, all));
+			if (eventInfo is null)
+				FileLog.Debug($"AccessTools.Event: Could not find event for type {type} and name {name}");
+			return eventInfo;
+		}
+
+		/// <summary>Gets the reflection information for an event by searching the type and all its super types</summary>
+		/// <param name="typeColonName">The member in the form <c>TypeFullName:MemberName</c>, where TypeFullName matches the form recognized by <a href="https://docs.microsoft.com/en-us/dotnet/api/system.type.gettype">Type.GetType</a> like <c>Some.Namespace.Type</c>.</param>
+		/// <returns>An event or null when the event cannot be found</returns>
+		///
+		public static EventInfo Event(string typeColonName)
+		{
+			var info = Tools.TypColonName(typeColonName);
+			var eventInfo = FindIncludingBaseTypes(info.type, t => t.GetEvent(info.name, all));
+			if (eventInfo is null)
+				FileLog.Debug($"AccessTools.Event: Could not find event for type {info.type} and name {info.name}");
+			return eventInfo;
+		}
+
+		/// <summary>Gets the reflection information for the add method of a directly declared event</summary>
+		/// <param name="type">The class/type where the event is declared</param>
+		/// <param name="name">The name of the event (case sensitive)</param>
+		/// <returns>A method or null when type/name is null or when the event cannot be found</returns>
+		///
+		public static MethodInfo DeclaredEventAdder(Type type, string name) => DeclaredEvent(type, name)?.GetAddMethod(true);
+
+		/// <summary>Gets the reflection information for the add method of a directly declared event</summary>
+		/// <param name="typeColonName">The member in the form <c>TypeFullName:MemberName</c>, where TypeFullName matches the form recognized by <a href="https://docs.microsoft.com/en-us/dotnet/api/system.type.gettype">Type.GetType</a> like <c>Some.Namespace.Type</c>.</param>
+		/// <returns>A method or null when the event cannot be found</returns>
+		///
+		public static MethodInfo DeclaredEventAdder(string typeColonName) => DeclaredEvent(typeColonName)?.GetAddMethod(true);
+
+		/// <summary>Gets the reflection information for the add method of an event by searching the type and all its super types</summary>
+		/// <param name="type">The class/type where the event is declared</param>
+		/// <param name="name">The name of the event (case sensitive)</param>
+		/// <returns>A method or null when type/name is null or when the event cannot be found</returns>
+		///
+		public static MethodInfo EventAdder(Type type, string name) => Event(type, name)?.GetAddMethod(true);
+
+		/// <summary>Gets the reflection information for the add method of an event by searching the type and all its super types</summary>
+		/// <param name="typeColonName">The member in the form <c>TypeFullName:MemberName</c>, where TypeFullName matches the form recognized by <a href="https://docs.microsoft.com/en-us/dotnet/api/system.type.gettype">Type.GetType</a> like <c>Some.Namespace.Type</c>.</param>
+		/// <returns>A method or null when the event cannot be found</returns>
+		///
+		public static MethodInfo EventAdder(string typeColonName) => Event(typeColonName)?.GetAddMethod(true);
+
+		/// <summary>Gets the reflection information for the remove method of a directly declared event</summary>
+		/// <param name="type">The class/type where the event is declared</param>
+		/// <param name="name">The name of the event (case sensitive)</param>
+		/// <returns>A method or null when type/name is null or when the event cannot be found</returns>
+		///
+		public static MethodInfo DeclaredEventRemover(Type type, string name) => DeclaredEvent(type, name)?.GetRemoveMethod(true);
+
+		/// <summary>Gets the reflection information for the remove method of a directly declared event</summary>
+		/// <param name="typeColonName">The member in the form <c>TypeFullName:MemberName</c>, where TypeFullName matches the form recognized by <a href="https://docs.microsoft.com/en-us/dotnet/api/system.type.gettype">Type.GetType</a> like <c>Some.Namespace.Type</c>.</param>
+		/// <returns>A method or null when the event cannot be found</returns>
+		///
+		public static MethodInfo DeclaredEventRemover(string typeColonName) => DeclaredEvent(typeColonName)?.GetRemoveMethod(true);
+
+		/// <summary>Gets the reflection information for the remove method of an event by searching the type and all its super types</summary>
+		/// <param name="type">The class/type where the event is declared</param>
+		/// <param name="name">The name of the event (case sensitive)</param>
+		/// <returns>A method or null when type/name is null or when the event cannot be found</returns>
+		///
+		public static MethodInfo EventRemover(Type type, string name) => Event(type, name)?.GetRemoveMethod(true);
+
+		/// <summary>Gets the reflection information for the remove method of an event by searching the type and all its super types</summary>
+		/// <param name="typeColonName">The member in the form <c>TypeFullName:MemberName</c>, where TypeFullName matches the form recognized by <a href="https://docs.microsoft.com/en-us/dotnet/api/system.type.gettype">Type.GetType</a> like <c>Some.Namespace.Type</c>.</param>
+		/// <returns>A method or null when the event cannot be found</returns>
+		///
+		public static MethodInfo EventRemover(string typeColonName) => Event(typeColonName)?.GetRemoveMethod(true);
+
 		/// <summary>Gets the reflection information for a directly declared method</summary>
 		/// <param name="type">The class/type where the method is declared</param>
 		/// <param name="name">The name of the method (case sensitive)</param>
@@ -465,7 +655,8 @@ namespace HarmonyLib
 				return null;
 			}
 
-			if (generics is not null) result = result.MakeGenericMethod(generics);
+			if (generics is not null)
+				result = result.MakeGenericMethod(generics);
 			return result;
 		}
 
@@ -528,7 +719,8 @@ namespace HarmonyLib
 				return null;
 			}
 
-			if (generics is not null) result = result.MakeGenericMethod(generics);
+			if (generics is not null)
+				result = result.MakeGenericMethod(generics);
 			return result;
 		}
 
@@ -609,6 +801,18 @@ namespace HarmonyLib
 		}
 #endif
 
+		/// <summary>Gets the reflection information for a finalizer</summary>
+		/// <param name="type">The class/type that defines the finalizer</param>
+		/// <returns>A method or null when type is null or when the finalizer cannot be found</returns>
+		///
+		public static MethodInfo Finalizer(Type type) => Method(type, "Finalize");
+
+		/// <summary>Gets the reflection information for a directly declared finalizer</summary>
+		/// <param name="type">The class/type that defines the finalizer</param>
+		/// <returns>A method or null when type is null or when the finalizer cannot be found</returns>
+		///
+		public static MethodInfo DeclaredFinalizer(Type type) => DeclaredMethod(type, "Finalize");
+
 		/// <summary>Gets the names of all method that are declared in a type</summary>
 		/// <param name="type">The declaring class/type</param>
 		/// <returns>A list of method names</returns>
@@ -620,7 +824,7 @@ namespace HarmonyLib
 				FileLog.Debug("AccessTools.GetMethodNames: type is null");
 				return [];
 			}
-			return GetDeclaredMethods(type).Select(m => m.Name).ToList();
+			return [.. GetDeclaredMethods(type).Select(m => m.Name)];
 		}
 
 		/// <summary>Gets the names of all method that are declared in the type of the instance</summary>
@@ -648,7 +852,7 @@ namespace HarmonyLib
 				FileLog.Debug("AccessTools.GetFieldNames: type is null");
 				return [];
 			}
-			return GetDeclaredFields(type).Select(f => f.Name).ToList();
+			return [.. GetDeclaredFields(type).Select(f => f.Name)];
 		}
 
 		/// <summary>Gets the names of all fields that are declared in the type of the instance</summary>
@@ -676,7 +880,7 @@ namespace HarmonyLib
 				FileLog.Debug("AccessTools.GetPropertyNames: type is null");
 				return [];
 			}
-			return GetDeclaredProperties(type).Select(f => f.Name).ToList();
+			return [.. GetDeclaredProperties(type).Select(f => f.Name)];
 		}
 
 		/// <summary>Gets the names of all properties that are declared in the type of the instance</summary>
@@ -707,6 +911,35 @@ namespace HarmonyLib
 				MemberTypes.Property => ((PropertyInfo)member).PropertyType,
 				_ => throw new ArgumentException("Member must be of type EventInfo, FieldInfo, MethodInfo, or PropertyInfo"),
 			};
+		}
+
+		/// <summary>Returns a <see cref="MethodInfo"/> by searching for module-id and token</summary>
+		/// <param name="moduleGUID">The module of the method</param>
+		/// <param name="token">The token of the method</param>
+		/// <returns></returns>
+		public static MethodInfo GetMethodByModuleAndToken(string moduleGUID, int token)
+		{
+#if NET5_0_OR_GREATER
+			Module module = null;
+			var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+			var moduleVersionGUID = new Guid(moduleGUID);
+			Parallel.ForEach(assemblies, (assembly) =>
+			{
+				var allModules = assembly.GetModules();
+				for (var i = 0; i < allModules.Length; i++)
+					if (allModules[i].ModuleVersionId == moduleVersionGUID)
+					{
+						module = allModules[i];
+						break;
+					}
+			});
+#else
+			var module = AppDomain.CurrentDomain.GetAssemblies()
+				.Where(a => !a.FullName.StartsWith("Microsoft.VisualStudio"))
+				.SelectMany(a => a.GetLoadedModules())
+				.First(m => m.ModuleVersionId.ToString() == moduleGUID);
+#endif
+			return module == null ? null : (MethodInfo)module.ResolveMethod(token);
 		}
 
 		/// <summary>Test if a class member is actually an concrete implementation</summary>
@@ -784,7 +1017,7 @@ namespace HarmonyLib
 			var flags = allDeclared;
 			if (searchForStatic.HasValue)
 				flags = searchForStatic.Value ? flags & ~BindingFlags.Instance : flags & ~BindingFlags.Static;
-			return type.GetConstructors(flags).Where(method => method.DeclaringType == type).ToList();
+			return [.. type.GetConstructors(flags).Where(method => method.DeclaringType == type)];
 		}
 
 		/// <summary>Gets reflection information for all declared methods</summary>
@@ -841,7 +1074,8 @@ namespace HarmonyLib
 				return null;
 			}
 			var constructor = methodOrConstructor as ConstructorInfo;
-			if (constructor is not null) return typeof(void);
+			if (constructor is not null)
+				return typeof(void);
 			return ((MethodInfo)methodOrConstructor).ReturnType;
 		}
 
@@ -951,8 +1185,9 @@ namespace HarmonyLib
 		///
 		public static Type[] GetTypes(object[] parameters)
 		{
-			if (parameters is null) return [];
-			return parameters.Select(p => p is null ? typeof(object) : p.GetType()).ToArray();
+			if (parameters is null)
+				return [];
+			return [.. parameters.Select(p => p is null ? typeof(object) : p.GetType())];
 		}
 
 		/// <summary>Creates an array of input parameters for a given method and a given set of potential inputs</summary>
@@ -963,13 +1198,13 @@ namespace HarmonyLib
 		public static object[] ActualParameters(MethodBase method, object[] inputs)
 		{
 			var inputTypes = inputs.Select(obj => obj?.GetType()).ToList();
-			return method.GetParameters().Select(p => p.ParameterType).Select(pType =>
+			return [.. method.GetParameters().Select(p => p.ParameterType).Select(pType =>
 			{
 				var index = inputTypes.FindIndex(inType => inType is not null && pType.IsAssignableFrom(inType));
 				if (index >= 0)
 					return inputs[index];
 				return GetDefaultValue(pType);
-			}).ToArray();
+			})];
 		}
 
 		/// <summary>A readable/assignable reference delegate to an instance field of a class or static field (NOT an instance field of a struct)</summary>
@@ -1510,6 +1745,13 @@ namespace HarmonyLib
 			}
 		}
 
+#pragma warning disable CS1591
+		[Obsolete("This overload only exists for runtime backwards compatibility and will be removed in Harmony 3. Use MethodDelegate(MethodInfo, object, bool, Type[]) instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static DelegateType MethodDelegate<DelegateType>(MethodInfo method, object instance, bool virtualCall) where DelegateType : Delegate
+			 => MethodDelegate<DelegateType>(method, instance, virtualCall, null);
+#pragma warning restore CS1591
+
 		/// <summary>Creates a delegate to a given method</summary>
 		/// <typeparam name="DelegateType">The delegate Type</typeparam>
 		/// <param name="method">The method to create a delegate from.</param>
@@ -1534,14 +1776,14 @@ namespace HarmonyLib
 		/// <returns>A delegate of given <typeparamref name="DelegateType"/> to given <paramref name="method"/></returns>
 		/// </param>
 		/// <remarks>
-		/// <param>
+		/// <para>
 		/// Delegate invocation is more performant and more convenient to use than <see cref="MethodBase.Invoke(object, object[])"/>
 		/// at a one-time setup cost.
-		/// </param>
-		/// <param>
+		/// </para>
+		/// <para>
 		/// Works for both type of static and instance methods, both open and closed (a.k.a. unbound and bound) instance methods,
 		/// and both class and struct methods.
-		/// </param>
+		/// </para>
 		/// </remarks>
 		///
 		public static DelegateType MethodDelegate<DelegateType>(MethodInfo method, object instance = null, bool virtualCall = true, Type[] delegateArgs = null) where DelegateType : Delegate
@@ -1693,6 +1935,13 @@ namespace HarmonyLib
 			return (DelegateType)Activator.CreateInstance(delegateType, instance, method.MethodHandle.GetFunctionPointer());
 		}
 
+#pragma warning disable CS1591
+		[Obsolete("This overload only exists for runtime backwards compatibility and will be removed in Harmony 3. Use MethodDelegate(string, object, bool, Type[]) instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static DelegateType MethodDelegate<DelegateType>(string typeColonName, object instance, bool virtualCall) where DelegateType : Delegate
+			 => MethodDelegate<DelegateType>(typeColonName, instance, virtualCall, null);
+#pragma warning restore CS1591
+
 		/// <summary>Creates a delegate to a given method</summary>
 		/// <typeparam name="DelegateType">The delegate Type</typeparam>
 		/// <param name="typeColonName">The method in the form <c>TypeFullName:MemberName</c>, where TypeFullName matches the form recognized by <a href="https://docs.microsoft.com/en-us/dotnet/api/system.type.gettype">Type.GetType</a> like <c>Some.Namespace.Type</c>.</param>
@@ -1707,7 +1956,15 @@ namespace HarmonyLib
 		/// else, invocation of the delegate calls the exact specified <paramref name="typeColonName"/> (this is useful for calling base class methods)
 		/// Note: if <c>false</c> and <paramref name="typeColonName"/> is an interface method, an ArgumentException is thrown.
 		/// </param>
+		/// <param name="delegateArgs">
+		/// Only applies for instance methods, and if argument <paramref name="instance"/> is null.
+		/// This argument only matters if the target <paramref name="typeColonName"/> signature contains a value type (such as struct or primitive types),
+		/// and your <typeparamref name="DelegateType"/> argument is replaced by a non-value type
+		/// (usually <c>object</c>) instead of using said value type.
+		/// Use this if the generic arguments of <typeparamref name="DelegateType"/> doesn't represent the delegate's
+		/// arguments, and calling this function fails
 		/// <returns>A delegate of given <typeparamref name="DelegateType"/> to given <paramref name="typeColonName"/></returns>
+		/// </param>
 		/// <remarks>
 		/// <para>
 		/// Delegate invocation is more performant and more convenient to use than <see cref="MethodBase.Invoke(object, object[])"/>
@@ -1719,11 +1976,8 @@ namespace HarmonyLib
 		/// </para>
 		/// </remarks>
 		///
-		public static DelegateType MethodDelegate<DelegateType>(string typeColonName, object instance = null, bool virtualCall = true) where DelegateType : Delegate
-		{
-			var method = DeclaredMethod(typeColonName);
-			return MethodDelegate<DelegateType>(method, instance, virtualCall);
-		}
+		public static DelegateType MethodDelegate<DelegateType>(string typeColonName, object instance = null, bool virtualCall = true, Type[] delegateArgs = null) where DelegateType : Delegate
+			=> MethodDelegate<DelegateType>(DeclaredMethod(typeColonName), instance, virtualCall, delegateArgs);
 
 		/// <summary>Creates a delegate for a given delegate definition, attributed with [<see cref="HarmonyLib.HarmonyDelegate"/>]</summary>
 		/// <typeparam name="DelegateType">The delegate Type, attributed with [<see cref="HarmonyLib.HarmonyDelegate"/>]</typeparam>
@@ -1747,7 +2001,7 @@ namespace HarmonyLib
 			var method = harmonyMethod.GetOriginalMethod() as MethodInfo;
 			if (method is null)
 				throw new NullReferenceException($"Delegate {typeof(DelegateType)} has no defined original method");
-			return MethodDelegate<DelegateType>(method, instance, harmonyMethod.nonVirtualDelegate is false);
+			return MethodDelegate<DelegateType>(method, instance, harmonyMethod.nonVirtualDelegate is false, null);
 		}
 
 		/// <summary>Returns who called the current method</summary>
@@ -1823,7 +2077,8 @@ namespace HarmonyLib
 				FileLog.Debug("AccessTools.GetDefaultValue: type is null");
 				return null;
 			}
-			if (type == typeof(void)) return null;
+			if (type == typeof(void))
+				return null;
 			if (type.IsValueType)
 				return Activator.CreateInstance(type);
 			return null;

@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width">
     <meta name="title" content="Delegate AccessTools.FieldRef&lt;T, F&gt;
    ">
-    <meta name="generator" content="docfx 2.59.4.0">
+    <meta name="generator" content="docfx 2.48.1.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -80,7 +80,7 @@
   <h6><strong>Assembly</strong>: 0Harmony.dll</h6>
   <h5 id="HarmonyLib_AccessTools_FieldRef_2_syntax">Syntax</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public delegate ref F FieldRef&lt;in T, F&gt;(T instance = null);</code></pre>
+    <pre><code class="lang-csharp hljs">public delegate F FieldRef&lt;in T, F&gt;(T instance = null);</code></pre>
   </div>
   <h5 class="parameters">Parameters</h5>
   <table class="table table-bordered table-striped table-condensed">
@@ -168,6 +168,266 @@ For such static fields, <code data-dev-comment-type="typeparamref" class="typepa
 Consider using <a class="xref" href="HarmonyLib.AccessTools.FieldRef-1.html">AccessTools.FieldRef&lt;F&gt;</a> (and <code>StaticFieldRefAccess</code> methods that return it) instead for static fields.
 </p>
 </div>
+  <h3 id="constructors">Constructors
+  </h3>
+  
+  
+  <a id="HarmonyLib_AccessTools_FieldRef_2__ctor_" data-uid="HarmonyLib.AccessTools.FieldRef`2.#ctor*"></a>
+  <h4 id="HarmonyLib_AccessTools_FieldRef_2__ctor_System_Object_System_IntPtr_" data-uid="HarmonyLib.AccessTools.FieldRef`2.#ctor(System.Object,System.IntPtr)">FieldRef(Object, IntPtr)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public FieldRef(object object, IntPtr method)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Object</span></td>
+        <td><span class="parametername">object</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.IntPtr</span></td>
+        <td><span class="parametername">method</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="exceptions">Exceptions</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Condition</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.NullReferenceException</span></td>
+        <td><p>Null instance passed to a non-static field ref delegate</p>
+</td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.InvalidCastException</span></td>
+        <td><p>Instance of invalid type passed to a non-static field ref delegate
+(this can happen if <code data-dev-comment-type="typeparamref" class="typeparamref">T</code> is a parent class or interface of the field's declaring type)</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+  </h3>
+  
+  
+  <a id="HarmonyLib_AccessTools_FieldRef_2_BeginInvoke_" data-uid="HarmonyLib.AccessTools.FieldRef`2.BeginInvoke*"></a>
+  <h4 id="HarmonyLib_AccessTools_FieldRef_2_BeginInvoke__0_System_AsyncCallback_System_Object_" data-uid="HarmonyLib.AccessTools.FieldRef`2.BeginInvoke(`0,System.AsyncCallback,System.Object)">BeginInvoke(T, AsyncCallback, Object)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual IAsyncResult BeginInvoke(T instance, AsyncCallback callback, object object)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">T</span></td>
+        <td><span class="parametername">instance</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.AsyncCallback</span></td>
+        <td><span class="parametername">callback</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Object</span></td>
+        <td><span class="parametername">object</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.IAsyncResult</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="exceptions">Exceptions</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Condition</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.NullReferenceException</span></td>
+        <td><p>Null instance passed to a non-static field ref delegate</p>
+</td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.InvalidCastException</span></td>
+        <td><p>Instance of invalid type passed to a non-static field ref delegate
+(this can happen if <code data-dev-comment-type="typeparamref" class="typeparamref">T</code> is a parent class or interface of the field's declaring type)</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <a id="HarmonyLib_AccessTools_FieldRef_2_EndInvoke_" data-uid="HarmonyLib.AccessTools.FieldRef`2.EndInvoke*"></a>
+  <h4 id="HarmonyLib_AccessTools_FieldRef_2_EndInvoke_System_IAsyncResult_" data-uid="HarmonyLib.AccessTools.FieldRef`2.EndInvoke(System.IAsyncResult)">EndInvoke(IAsyncResult)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual F EndInvoke(IAsyncResult result)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.IAsyncResult</span></td>
+        <td><span class="parametername">result</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">F</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="exceptions">Exceptions</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Condition</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.NullReferenceException</span></td>
+        <td><p>Null instance passed to a non-static field ref delegate</p>
+</td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.InvalidCastException</span></td>
+        <td><p>Instance of invalid type passed to a non-static field ref delegate
+(this can happen if <code data-dev-comment-type="typeparamref" class="typeparamref">T</code> is a parent class or interface of the field's declaring type)</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <a id="HarmonyLib_AccessTools_FieldRef_2_Invoke_" data-uid="HarmonyLib.AccessTools.FieldRef`2.Invoke*"></a>
+  <h4 id="HarmonyLib_AccessTools_FieldRef_2_Invoke__0_" data-uid="HarmonyLib.AccessTools.FieldRef`2.Invoke(`0)">Invoke(T)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual F Invoke(T instance = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">T</span></td>
+        <td><span class="parametername">instance</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">F</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="exceptions">Exceptions</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Condition</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.NullReferenceException</span></td>
+        <td><p>Null instance passed to a non-static field ref delegate</p>
+</td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.InvalidCastException</span></td>
+        <td><p>Instance of invalid type passed to a non-static field ref delegate
+(this can happen if <code data-dev-comment-type="typeparamref" class="typeparamref">T</code> is a parent class or interface of the field's declaring type)</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
 </article>
           </div>
           
@@ -175,17 +435,10 @@ Consider using <a class="xref" href="HarmonyLib.AccessTools.FieldRef-1.html">Acc
             <div class="sideaffix">
               <div class="contribution">
                 <ul class="nav">
-                  <li>
-                    <a href="https://github.com/pardeike/Harmony/new/master/apiSpec/new?filename=HarmonyLib_AccessTools_FieldRef_2.md&amp;value=---%0Auid%3A%20HarmonyLib.AccessTools.FieldRef%602%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
-                  </li>
-                  <li>
-                    <a href="https://github.com/pardeike/Harmony/blob/master/Harmony/Tools/AccessTools.cs/#L1021" class="contribution-link">View Source</a>
-                  </li>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-                <h5>In This Article</h5>
-                <div></div>
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
               </nav>
             </div>
           </div>

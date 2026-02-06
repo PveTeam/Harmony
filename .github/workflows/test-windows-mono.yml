@@ -45,15 +45,19 @@ env:
 
 jobs:
   windows-mono:
-    name: Mono ${{ inputs.architecture }} ${{ inputs.target_framework }} ${{ inputs.build_configuration }}
-    runs-on: windows-latest
+    name: ${{ inputs.build_configuration }}
+    runs-on: windows-2025
     continue-on-error: ${{inputs.experimental}}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup .NET Sdk
         uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
 
       - name: Get Installed .NET Sdk Information
         run: dotnet --info

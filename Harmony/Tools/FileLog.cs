@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -70,6 +71,9 @@ namespace HarmonyLib
 		static List<string> buffer = [];
 
 		static string IndentString() => new(indentChar, indentLevel);
+		static string CodePos(int offset) => string.Format("IL_{0:X4}: ", offset);
+
+
 
 		/// <summary>Changes the indentation level</summary>
 		/// <param name="delta">The value to add to the indentation level</param>
@@ -136,20 +140,27 @@ namespace HarmonyLib
 		///
 		public static void FlushBuffer()
 		{
-			if (LogWriter != null)
-			{
-				foreach (var str in buffer)
-					LogWriter.WriteLine(str);
-				buffer.Clear();
-				return;
-			}
 
-			if (LogPath == null) return;
 			lock (fileLock)
 			{
+				if (LogWriter != null)
+				{
+					foreach (var str in buffer)
+						LogWriter.WriteLine(str);
+					buffer.Clear();
+					return;
+				}
+
+				if (LogPath == null) return;
 				if (buffer.Count > 0)
 				{
-					using var writer = File.AppendText(LogPath);
+					using var fs = new FileStream(
+						 LogPath,
+						 FileMode.Append,
+						 FileAccess.Write,
+						 FileShare.ReadWrite
+					);
+					using var writer = new StreamWriter(fs);
 					foreach (var str in buffer)
 						writer.WriteLine(str);
 					buffer.Clear();
@@ -157,22 +168,162 @@ namespace HarmonyLib
 			}
 		}
 
-		/// <summary>Log a string directly to disk. Slower method that prevents missing information in case of a crash</summary>
+		/// <summary>Logs a string directly to disk to avoid losing information in case of a crash</summary>
 		/// <param name="str">The string to log.</param>
-		///
+		/// 
 		public static void Log(string str)
 		{
-			if (LogWriter != null)
-			{
-				LogWriter.WriteLine(IndentString() + str);
-				return;
-			}
-
-			if (LogPath == null) return;
 			lock (fileLock)
 			{
-				using var writer = File.AppendText(LogPath);
+				if (LogWriter is not null)
+				{
+					LogWriter.WriteLine($"{IndentString()}{str}");
+					return;
+				}
+
+				if (LogPath == null) return;
+				using var fs = new FileStream(
+						 LogPath,
+						 FileMode.Append,
+						 FileAccess.Write,
+						 FileShare.ReadWrite
+					);
+				using var writer = new StreamWriter(fs);
 				writer.WriteLine(IndentString() + str);
+			}
+		}
+
+		/// <summary>Logs an inline comment at the specified code position</summary>
+		/// <remarks>This method formats the comment with the code position and logs it.</remarks>
+		/// <param name="codePos">The position in the code where the comment should be logged.</param>
+		/// <param name="comment">The comment text to log. Cannot be null or empty.</param>
+		/// 
+		public static void LogILComment(int codePos, string comment)
+			=> LogBuffered(string.Format("{0}// {1}", CodePos(codePos), comment));
+
+		/// <summary>Logs the specified Intermediate Language (IL) operation code and its position in the code stream</summary>
+		/// <remarks>This method formats the IL operation code and its position into a string and logs it.</remarks>
+		/// <param name="codePos">The position of the IL operation code in the code stream.</param>
+		/// <param name="opcode">The IL operation code to log.</param>
+		/// 
+		public static void LogIL(int codePos, OpCode opcode)
+			=> LogBuffered(string.Format("{0}{1}", CodePos(codePos), opcode));
+
+		/// <summary>Logs information about an Intermediate Language (IL) instruction, including its position, opcode, and operand</summary>
+		/// <remarks>This method formats and logs details about an IL instruction for debugging or analysis purposes. 
+		/// The logged output includes the instruction's position, opcode, and operand (if any).</remarks>
+		/// <param name="codePos">The position of the IL instruction within the method body.</param>
+		/// <param name="opcode">The <see cref="OpCode"/> representing the operation to be performed.</param>
+		/// <param name="arg">The operand associated with the IL instruction, or <see langword="null"/> if the instruction has no operand.</param>
+		/// 
+		public static void LogIL(int codePos, OpCode opcode, object arg)
+		{
+			var argStr = Emitter.FormatOperand(arg);
+			var space = argStr.Length > 0 ? " " : "";
+			var opcodeName = opcode.ToString();
+			if (opcode.FlowControl == FlowControl.Branch || opcode.FlowControl == FlowControl.Cond_Branch) opcodeName += " =>";
+			opcodeName = opcodeName.PadRight(10);
+			LogBuffered(string.Format("{0}{1}{2}{3}", CodePos(codePos), opcodeName, space, argStr));
+		}
+
+		/// <summary>Logs information about a local variable in Intermediate Language (IL) code</summary>
+		/// <remarks>The logged information includes the variable's index, type, and whether it is pinned.</remarks>
+		/// <param name="variable">The <see cref="Mono.Cecil.Cil.VariableDefinition"/> representing the local variable to log. Must not be <see
+		/// langword="null"/>.</param>
+		/// 
+		internal static void LogIL(Mono.Cecil.Cil.VariableDefinition variable)
+			=> LogBuffered(string.Format("{0}Local var {1}: {2}{3}", CodePos(0), variable.Index, variable.VariableType.FullName, variable.IsPinned ? "(pinned)" : ""));
+
+		/// <summary>Logs the intermediate language (IL) code at the specified position with the given label operand</summary>
+		/// <remarks>Formats and logs the IL code position and label operand for detailed IL tracking or debugging.</remarks>
+		/// <param name="codePos">The position in the IL code to log.</param>
+		/// <param name="label">The label operand associated with the IL code to log.</param>
+		/// 
+		public static void LogIL(int codePos, Label label)
+			=> LogBuffered(CodePos(codePos) + Emitter.FormatOperand(label));
+
+		/// <summary>Logs the beginning of an intermediate language (IL) exception handling block</summary>
+		/// <remarks>Logs the start of an exception handling block (e.g., <c>.try</c>, <c>.catch</c>, <c>.finally</c>, <c>.fault</c>),
+		/// adjusts indentation, and simulates a <c>LEAVE</c> opcode for consistency.</remarks>
+		/// <param name="codePos">The position of the IL code where the block begins.</param>
+		/// <param name="block">The <see cref="ExceptionBlock"/> representing the type of exception handling block to log. This includes
+		/// information about the block type (e.g., try, catch, finally) and any associated metadata.</param>
+		/// 
+		public static void LogILBlockBegin(int codePos, ExceptionBlock block)
+		{
+			switch (block.blockType)
+			{
+				case ExceptionBlockType.BeginExceptionBlock:
+					LogBuffered(".try");
+					LogBuffered("{");
+					ChangeIndent(1);
+					break;
+
+				case ExceptionBlockType.BeginCatchBlock:
+					// fake log a LEAVE code since BeginCatchBlock() does add it
+					LogIL(codePos, OpCodes.Leave, new LeaveTry());
+
+					ChangeIndent(-1);
+					LogBuffered("} // end try");
+
+					LogBuffered($".catch {block.catchType}");
+					LogBuffered("{");
+					ChangeIndent(1);
+					break;
+
+				case ExceptionBlockType.BeginExceptFilterBlock:
+					// fake log a LEAVE code since BeginCatchBlock() does add it
+					LogIL(codePos, OpCodes.Leave, new LeaveTry());
+
+					ChangeIndent(-1);
+					LogBuffered("} // end try");
+
+					LogBuffered(".filter");
+					LogBuffered("{");
+					ChangeIndent(1);
+					break;
+
+				case ExceptionBlockType.BeginFaultBlock:
+					// fake log a LEAVE code since BeginCatchBlock() does add it
+					LogIL(codePos, OpCodes.Leave, new LeaveTry());
+
+					ChangeIndent(-1);
+					LogBuffered("} // end try");
+
+					LogBuffered(".fault");
+					LogBuffered("{");
+					ChangeIndent(1);
+					break;
+
+				case ExceptionBlockType.BeginFinallyBlock:
+					// fake log a LEAVE code since BeginCatchBlock() does add it
+					LogIL(codePos, OpCodes.Leave, new LeaveTry());
+
+					ChangeIndent(-1);
+					LogBuffered("} // end try");
+
+					LogBuffered(".finally");
+					LogBuffered("{");
+					ChangeIndent(1);
+					break;
+			}
+		}
+
+		/// <summary>Logs the end of an intermediate language (IL) exception block</summary>
+		/// <remarks>This method handles the logging of specific types of exception blocks, such as the end of a try-catch or 
+		/// similar constructs. It adjusts the indentation level and outputs relevant information about the block's conclusion.</remarks>
+		/// <param name="codePos">The position in the IL code where the block ends.</param>
+		/// <param name="block">The exception block to log. Must have a valid block type.</param>
+		/// 
+		public static void LogILBlockEnd(int codePos, ExceptionBlock block)
+		{
+			switch (block.blockType)
+			{
+				case ExceptionBlockType.EndExceptionBlock:
+					LogIL(codePos, OpCodes.Leave, new LeaveTry());
+					ChangeIndent(-1);
+					LogBuffered("} // end handler");
+					break;
 			}
 		}
 
@@ -223,9 +374,13 @@ namespace HarmonyLib
 				}
 
 				var arr = new byte[len];
-				Marshal.Copy((IntPtr)ptr, arr, 0, len);
+				Marshal.Copy(checked((IntPtr)ptr), arr, 0, len);
+#if NET6_0_OR_GREATER
+				var hash = MD5.HashData(arr);
+#else
 				var md5Hash = MD5.Create();
 				var hash = md5Hash.ComputeHash(arr);
+#endif
 				var sBuilder = new StringBuilder();
 				for (var i = 0; i < hash.Length; i++)
 					_ = sBuilder.Append(hash[i].ToString("X2"));

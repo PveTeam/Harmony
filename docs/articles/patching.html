@@ -8,7 +8,7 @@
     <title>Patching </title>
     <meta name="viewport" content="width=device-width">
     <meta name="title" content="Patching ">
-    <meta name="generator" content="docfx 2.59.4.0">
+    <meta name="generator" content="docfx 2.48.1.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -149,7 +149,7 @@ class Patch
 <h3 id="transpiler">Transpiler</h3>
 <p>This method defines the transpiler that modifies the code of the original method. Use this in the advanced case where you want to modify the original methods IL codes.</p>
 <h3 id="finalizer">Finalizer</h3>
-<p>A finalizer is a method that is executed after all postfixes. It will wrap the original, all prefixes and postfixes in a try/catch logic and is either called with <code>null</code> (no exception) or with an exception if one occured. It is commonly used to:</p>
+<p>A finalizer is a method that executes after all postfixes. It wraps the original method, all prefixes, and postfixes in try/catch logic and is called either with <code>null</code> (no exception) or with an exception if one occurred. It is commonly used to:</p>
 <ul>
 <li>run a piece of code at the end that is guaranteed to be executed</li>
 <li>handle exceptions and suppress them</li>
@@ -163,13 +163,12 @@ class Patch
               <div class="contribution">
                 <ul class="nav">
                   <li>
-                    <a href="https://github.com/pardeike/Harmony/blob/master/Harmony/Documentation/articles/patching.md/#L1" class="contribution-link">Improve this Doc</a>
+                    <a href="https://github.com/pardeike/Harmony/blob/master/Documentation/articles/patching.md/#L1" class="contribution-link">Improve this Doc</a>
                   </li>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-                <h5>In This Article</h5>
-                <div></div>
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
               </nav>
             </div>
           </div>
